@@ -140,34 +140,61 @@
   .bristol-key .k-name{font-size:14px;font-weight:600;color:var(--ink);display:block;}
   .bristol-key .k-desc{font-size:12.5px;color:var(--muted);line-height:1.45;margin-top:2px;display:block;}
 
-  /* FODMAP reference */
-  .modal.fodmap{max-width:620px;padding:20px 16px;}
-  .fod-legend{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 12px;}
-  .fod-legend span{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-    padding:7px 6px;border-radius:9px;text-align:center;}
-  .fod-legend .lo{background:rgba(124,196,160,.13);color:var(--accent);
-    border:1px solid rgba(124,196,160,.32);}
-  .fod-legend .hi{background:rgba(217,139,106,.13);color:var(--danger);
-    border:1px solid rgba(217,139,106,.32);}
-  .fod-scroll{max-height:52vh;overflow-y:auto;margin:0 0 14px;padding-right:4px;
+  /* FODMAP reference \u2014 a two-column table: persistent column head,
+     sticky category labels, list flexes to fill whatever height is left */
+  .modal.fodmap{max-width:620px;padding:18px 16px 16px;
+    display:flex;flex-direction:column;max-height:100%;}
+  .modal.fodmap h3{margin:0 0 12px;}
+  .fod-head{display:grid;grid-template-columns:1fr 1fr;gap:10px;flex-shrink:0;
+    padding:0 4px 7px 0;border-bottom:1px solid var(--line);}
+  .fod-head span{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+  .fod-head .lo{color:var(--accent);}
+  .fod-head .hi{color:var(--danger);}
+  .fod-scroll{flex:1;min-height:0;overflow-y:auto;padding-right:4px;
+    overscroll-behavior:contain;
     scrollbar-width:thin;scrollbar-color:var(--line) transparent;}
   .fod-scroll::-webkit-scrollbar{width:8px;}
   .fod-scroll::-webkit-scrollbar-track{background:transparent;}
   .fod-scroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
   .fod-scroll::-webkit-scrollbar-thumb:active{background:var(--muted);}
-  .fod-cat{margin-bottom:15px;}
+  .fod-cat{margin-bottom:14px;}
   .fod-cat:last-child{margin-bottom:0;}
-  .fod-cat h4{margin:0 0 7px;font-size:11px;font-weight:700;letter-spacing:.09em;
-    text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);
-    padding-bottom:5px;}
+  .fod-cat h4{position:sticky;top:0;z-index:1;background:var(--surface);
+    margin:0 0 6px;padding:9px 0 5px;font-size:11px;font-weight:700;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--muted);box-shadow:0 1px 0 var(--line);}
   .fod-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;}
   .fod-cols ul{list-style:none;margin:0;padding:0;}
   .fod-cols li{font-size:12.5px;line-height:1.45;padding:1.5px 0 1.5px 13px;
-    position:relative;color:var(--ink);}
+    position:relative;color:var(--ink);overflow-wrap:break-word;}
   .fod-cols li::before{position:absolute;left:0;top:1.5px;font-weight:700;font-size:12px;}
   .fod-cols .lo li::before{content:'+';color:var(--accent);}
   .fod-cols .hi li::before{content:'\2212';color:var(--danger);}
-  .fod-note{font-size:11.5px;color:var(--muted);line-height:1.5;margin:0 0 16px;}
+
+  /* Folded caveat \u2014 read once, then it stays out of the way */
+  .fod-note{flex-shrink:0;border-top:1px solid var(--line);margin:0 0 12px;}
+  .fod-note summary{list-style:none;cursor:pointer;padding:11px 2px 10px;
+    font-size:12.5px;font-weight:600;color:var(--muted);
+    display:flex;align-items:center;gap:8px;}
+  .fod-note summary::-webkit-details-marker{display:none;}
+  .fod-note summary::after{content:'';width:6px;height:6px;flex-shrink:0;margin-left:auto;
+    border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);
+    transform:translateY(-2px) rotate(45deg);transition:transform .18s ease;}
+  .fod-note[open] summary::after{transform:translateY(1px) rotate(-135deg);}
+  .fod-note p{margin:0 2px 12px;font-size:12px;color:var(--muted);line-height:1.55;}
+
+  /* keyboard focus */
+  .info-btn:focus-visible,.modal .row button:focus-visible,
+  .fod-note summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+  @media (max-width:420px){
+    .scrim{padding:12px;}
+    .modal.fodmap{padding:16px 13px 14px;}
+    .fod-cols{gap:8px;}
+    .fod-cols li{font-size:12px;padding-left:12px;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .fod-note summary::after{transition:none;}
+  }
 </style>
 </head>
 <body>
@@ -232,12 +259,15 @@
 <div class="scrim" id="fodScrim">
   <div class="modal info fodmap">
     <h3>FODMAP quick reference</h3>
-    <p class="lede">Fermentable carbs that commonly trigger IBS symptoms, by food group.</p>
-    <div class="fod-legend"><span class="lo">Low — usually fine</span><span class="hi">High — common triggers</span></div>
+    <div class="fod-head"><span class="lo">Low</span><span class="hi">High</span></div>
     <div class="fod-scroll" id="fodBody"></div>
-    <p class="fod-note">Portion decides a lot: a small serve of a “high” food is often tolerated,
-      and a large serve of a “low” one can still trigger. Tolerance is individual — use this to
-      pick what to log and test, not as medical advice.</p>
+    <details class="fod-note">
+      <summary>Why portion size matters</summary>
+      <p>FODMAPs are fermentable carbs that commonly set off IBS symptoms. Portion decides a lot:
+        a small serve of a “high” food is often fine, and a large serve of a “low” one can still
+        trigger. Tolerance is individual — use this to pick what to log and test, not as
+        medical advice.</p>
+    </details>
     <div class="row"><button class="cancel" id="fodClose">Got it</button></div>
   </div>
 </div>
