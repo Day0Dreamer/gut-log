@@ -165,14 +165,16 @@
   .fod-scroll::-webkit-scrollbar-thumb:active{background:var(--muted);}
   .fod-cat{margin-bottom:14px;}
   .fod-cat:last-child{margin-bottom:0;}
-  /* Deliberately not sticky. No category is longer than a screenful, so
-     pinning the label bought nothing and cost overlap artefacts: rows
-     clipped mid-glyph at the header edge, and text showing through the
-     gap beneath it. The Low/High head above the scroller is the orientation
-     that actually matters, and it never overlaps anything. */
-  .fod-cat h4{margin:0 0 6px;padding:9px 0 5px;font-size:11px;font-weight:700;
-    letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
-    border-bottom:1px solid var(--line);}
+  /* Sticky, so the category stays named while its rows scroll past.
+     Every gap under it must be painted: a margin here would be a transparent
+     window for list text to show through, which also drags the hairline down
+     onto the passing row and reads as strikethrough. So the spacing is
+     padding, and the rule is drawn inside it, above the cut. */
+  .fod-cat h4{position:sticky;top:0;z-index:1;background:var(--surface);
+    margin:0;padding:9px 0 11px;font-size:11px;font-weight:700;
+    letter-spacing:.09em;text-transform:uppercase;color:var(--muted);}
+  .fod-cat h4::before{content:'';position:absolute;left:0;right:0;bottom:6px;
+    height:1px;background:var(--line);}
   .fod-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;}
   .fod-cols ul{list-style:none;margin:0;padding:0;}
   .fod-cols li{font-size:12.5px;line-height:1.45;padding:1.5px 0 1.5px 15px;
