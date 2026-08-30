@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#14201c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Gut Log</title>
+<style>
+  :root{
+    --bg:#14201c;          /* deep pine */
+    --surface:#1d2c26;     /* raised panel */
+    --surface-2:#26382f;   /* input wells */
+    --line:#33463d;        /* hairlines */
+    --ink:#eaf2ec;         /* primary text */
+    --muted:#8fa89b;       /* secondary text */
+    --accent:#7cc4a0;      /* mint — actions */
+    --accent-ink:#0d1613;  /* text on accent */
+    --danger:#d98b6a;      /* clay — destructive */
+    --radius:16px;
+    --tap:56px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,system-ui,sans-serif;
+    font-size:17px;line-height:1.4;-webkit-font-smoothing:antialiased;}
+  body{padding:max(16px,env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+    max-width:560px;margin:0 auto;min-height:100vh;}
+
+  header{display:flex;align-items:baseline;justify-content:space-between;
+    margin:4px 2px 20px;}
+  header h1{font-size:19px;font-weight:650;letter-spacing:.02em;margin:0;}
+  header .sub{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;}
+
+  .card{background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--radius);padding:16px;margin-bottom:16px;}
+  .card h2{font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 12px;}
+  .info-btn{width:26px;height:26px;border-radius:50%;border:1px solid var(--line);
+    background:var(--surface-2);color:var(--muted);font-size:14px;font-weight:700;
+    cursor:pointer;flex-shrink:0;line-height:1;padding:0;}
+  .info-btn:active{transform:scale(.9);border-color:var(--accent);color:var(--accent);}
+
+  /* Dish logger */
+  .dish-row{display:flex;gap:8px;}
+  #dish{flex:1;min-width:0;height:var(--tap);background:var(--surface-2);
+    border:1px solid var(--line);border-radius:12px;color:var(--ink);
+    font-size:17px;padding:0 14px;outline:none;}
+  #dish:focus{border-color:var(--accent);}
+  #dish::placeholder{color:var(--muted);}
+  .btn{height:var(--tap);border:none;border-radius:12px;font-size:16px;font-weight:650;
+    background:var(--accent);color:var(--accent-ink);padding:0 20px;cursor:pointer;
+    transition:transform .06s ease,filter .15s ease;flex-shrink:0;}
+  .btn:active{transform:scale(.96);}
+  .btn:disabled{filter:grayscale(.5) brightness(.7);cursor:default;}
+
+  /* Bristol row */
+  .bristol{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;}
+  .bristol button{aspect-ratio:1/1;background:var(--surface-2);border:1px solid var(--line);
+    border-radius:12px;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:5px;padding:0;
+    transition:transform .06s ease,border-color .15s ease,background .15s ease;}
+  .bristol button:active{transform:scale(.92);}
+  .bristol button .num{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;}
+  .bristol .lbl-row{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-top:8px;}
+  .scale-ends{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);
+    margin-top:10px;padding:0 2px;}
+  /* flash on select */
+  .bristol button.picked{background:var(--accent);border-color:var(--accent);}
+  .bristol button.picked .num{color:var(--accent-ink);}
+
+  /* Log list */
+  .log-head{display:flex;align-items:center;justify-content:space-between;margin:0 0 12px;}
+  .log-head h2{margin:0;}
+  .seg{display:flex;background:var(--surface-2);border-radius:10px;padding:3px;gap:2px;}
+  .seg button{border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:600;
+    padding:6px 12px;border-radius:8px;cursor:pointer;}
+  .seg button.on{background:var(--accent);color:var(--accent-ink);}
+
+  .entry{display:flex;align-items:center;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line);}
+  .entry:last-child{border-bottom:none;}
+  .entry .badge{width:38px;height:38px;border-radius:10px;flex-shrink:0;display:flex;
+    align-items:center;justify-content:center;font-weight:700;font-size:17px;
+    background:var(--surface-2);font-variant-numeric:tabular-nums;}
+  .entry .badge.dish{font-size:15px;}
+  .entry .body{flex:1;min-width:0;}
+  .entry .title{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .entry .time{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:1px;}
+  .entry .del{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;
+    padding:6px 8px;line-height:1;flex-shrink:0;}
+  .entry .del:active{color:var(--danger);}
+  .entry .repeat{background:var(--surface-2);border:1px solid var(--line);color:var(--muted);
+    font-size:12px;font-weight:600;padding:7px 11px;border-radius:9px;cursor:pointer;flex-shrink:0;
+    transition:transform .06s ease,border-color .15s ease,color .15s ease;}
+  .entry .repeat:active{transform:scale(.94);border-color:var(--accent);color:var(--accent);}
+  .empty{color:var(--muted);font-size:14px;text-align:center;padding:28px 12px;}
+
+  footer{display:flex;gap:8px;margin-top:4px;}
+  .btn-ghost{flex:1;height:48px;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;
+    background:transparent;border:1px solid var(--line);color:var(--muted);
+    transition:border-color .15s ease,color .15s ease;}
+  .btn-ghost:active{transform:scale(.98);}
+  .btn-ghost.danger:active{border-color:var(--danger);color:var(--danger);}
+
+  /* toast */
+  #toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));
+    transform:translateX(-50%) translateY(20px);background:var(--accent);color:var(--accent-ink);
+    font-size:14px;font-weight:650;padding:11px 18px;border-radius:999px;opacity:0;pointer-events:none;
+    transition:opacity .2s ease,transform .2s ease;z-index:20;max-width:88vw;text-align:center;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  #toast.warn{background:var(--danger);}
+
+  /* modal */
+  .scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;
+    justify-content:center;padding:24px;z-index:30;}
+  .scrim.show{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px;max-width:340px;width:100%;}
+  .modal h3{margin:0 0 8px;font-size:17px;}
+  .modal p{margin:0 0 18px;font-size:14px;color:var(--muted);line-height:1.5;}
+  .modal .row{display:flex;gap:8px;}
+  .modal .row button{flex:1;height:46px;border-radius:11px;font-size:15px;font-weight:650;cursor:pointer;border:none;}
+  .modal .cancel{background:var(--surface-2);color:var(--ink);}
+  .modal .confirm{background:var(--danger);color:var(--accent-ink);}
+  .modal.info{max-width:380px;}
+  .modal .lede{margin-bottom:16px;}
+  .bristol-key{list-style:none;margin:0 0 18px;padding:0;max-height:52vh;overflow-y:auto;
+    scrollbar-width:thin;scrollbar-color:var(--line) transparent;}
+  .bristol-key::-webkit-scrollbar{width:8px;}
+  .bristol-key::-webkit-scrollbar-track{background:transparent;}
+  .bristol-key::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+  .bristol-key::-webkit-scrollbar-thumb:active{background:var(--muted);}
+  .bristol-key li{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);}
+  .bristol-key li:last-child{border-bottom:none;}
+  .bristol-key .k-num{width:24px;height:24px;border-radius:7px;background:var(--surface-2);
+    color:var(--ink);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;font-variant-numeric:tabular-nums;}
+  .bristol-key .k-body{flex:1;min-width:0;}
+  .bristol-key .k-name{font-size:14px;font-weight:600;color:var(--ink);display:block;}
+  .bristol-key .k-desc{font-size:12.5px;color:var(--muted);line-height:1.45;margin-top:2px;display:block;}
+</style>
+</head>
+<body>
+<header>
+  <h1>Gut Log</h1>
+  <span class="sub" id="count">—</span>
+</header>
+
+<!-- DISH LOGGER -->
+<section class="card">
+  <h2>What I ate</h2>
+  <div class="dish-row">
+    <input id="dish" type="text" placeholder="Dish or drink…" autocomplete="off"
+           enterkeyhint="done" maxlength="120">
+    <button class="btn" id="logDish">Log</button>
+  </div>
+</section>
+
+<!-- BRISTOL LOGGER -->
+<section class="card">
+  <div class="log-head">
+    <h2>Bristol stool type</h2>
+    <button class="info-btn" id="infoBtn" aria-label="What do the types mean?">?</button>
+  </div>
+  <div class="bristol" id="bristol"></div>
+  <div class="scale-ends"><span>1 · hard</span><span>4 · ideal</span><span>7 · liquid</span></div>
+</section>
+
+<!-- LOG -->
+<section class="card">
+  <div class="log-head">
+    <h2>History</h2>
+    <div class="seg" id="filter">
+      <button data-f="all" class="on">All</button>
+      <button data-f="dish">Meals</button>
+      <button data-f="stool">Stool</button>
+    </div>
+  </div>
+  <div id="list"></div>
+</section>
+
+<footer>
+  <button class="btn-ghost" id="exportBtn">Export CSV</button>
+  <button class="btn-ghost danger" id="clearBtn">Clear all</button>
+</footer>
+
+<div id="toast"></div>
+
+<div class="scrim" id="infoScrim">
+  <div class="modal info">
+    <h3>Bristol stool scale</h3>
+    <p class="lede">A standard way to classify stool by form. Types 3–4 are ideal; 1–2 mean constipation, 6–7 mean diarrhea.</p>
+    <ul class="bristol-key" id="bristolKey"></ul>
+    <div class="row"><button class="cancel" id="infoClose">Got it</button></div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim">
+  <div class="modal">
+    <h3>Clear all records?</h3>
+    <p>This permanently deletes every logged meal and stool entry on this device. Export first if you want a copy. This can't be undone.</p>
+    <div class="row">
+      <button class="cancel" id="clearCancel">Cancel</button>
+      <button class="confirm" id="clearConfirm">Delete all</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* Detailed Bristol descriptions for the info popup */
+const bristolInfo = [
+  ['1','Separate hard lumps','Hard, distinct pellets like nuts or pebbles that are difficult and often uncomfortable to pass. Reflects slow transit and marked constipation — waste has sat in the colon long enough to lose most of its water.'],
+  ['2','Lumpy sausage','Sausage-shaped but firm and visibly lumpy, made of hard pieces pressed together. Still a sign of constipation and slow transit, just less severe than type 1.'],
+  ['3','Cracked sausage','Sausage-shaped with cracks along the surface, firm but passes without much strain. This is within the normal range — on the firmer side of healthy.'],
+  ['4','Smooth sausage','Smooth, soft, and snake-like, passed easily in one piece. Widely considered the ideal: well-formed with balanced water content and normal transit time.'],
+  ['5','Soft blobs','Soft, distinct pieces with clear-cut edges that pass easily. Borderline — can be normal for some, but often points to slightly fast transit or a need for more fiber.'],
+  ['6','Mushy, ragged','Fluffy, mushy pieces with ragged, torn edges and no firm shape. Indicates fast transit — the colon isn\'t reabsorbing enough water. Counts as mild diarrhea and is a common IBS-D pattern.'],
+  ['7','Liquid','Entirely watery with no solid pieces. Marks the fastest transit and most severe diarrhea; sustained type 7 risks dehydration and loss of electrolytes.']
+];
+
+/* ---------- IndexedDB tiny wrapper ---------- */
+const DB='gutlog', STORE='entries';
+let db;
+function open(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open(DB,1);
+    r.onupgradeneeded=e=>{
+      const s=e.target.result.createObjectStore(STORE,{keyPath:'id',autoIncrement:true});
+      s.createIndex('ts','ts');
+    };
+    r.onsuccess=e=>{db=e.target.result;res();};
+    r.onerror=e=>rej(e);
+  });
+}
+function tx(mode){return db.transaction(STORE,mode).objectStore(STORE);}
+function add(entry){return new Promise((res,rej)=>{const q=tx('readwrite').add(entry);q.onsuccess=()=>res(q.result);q.onerror=rej;});}
+function all(){return new Promise((res,rej)=>{const q=tx('readonly').getAll();q.onsuccess=()=>res(q.result);q.onerror=rej;});}
+function remove(id){return new Promise((res,rej)=>{const q=tx('readwrite').delete(id);q.onsuccess=res;q.onerror=rej;});}
+function clearAll(){return new Promise((res,rej)=>{const q=tx('readwrite').clear();q.onsuccess=res;q.onerror=rej;});}
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+let filter='all';
+
+function toast(msg,warn){
+  const t=$('#toast');t.textContent=msg;t.className='show'+(warn?' warn':'');
+  clearTimeout(t._t);t._t=setTimeout(()=>t.className='',1900);
+}
+function fmt(ts){
+  const d=new Date(ts), now=new Date();
+  const time=d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+  const sameDay=d.toDateString()===now.toDateString();
+  const yst=new Date(now);yst.setDate(now.getDate()-1);
+  if(sameDay) return 'Today · '+time;
+  if(d.toDateString()===yst.toDateString()) return 'Yesterday · '+time;
+  return d.toLocaleDateString([], {month:'short',day:'numeric'})+' · '+time;
+}
+
+/* ---------- render ---------- */
+async function render(){
+  const rows=(await all()).sort((a,b)=>b.ts-a.ts);
+  $('#count').textContent = rows.length ? rows.length+' logged' : 'no entries yet';
+  const shown = rows.filter(r=> filter==='all' ? true : r.type===filter);
+  const list=$('#list');
+  if(!shown.length){
+    list.innerHTML='<div class="empty">'+(rows.length?'Nothing in this view.':'Log a meal or tap a Bristol number to start.')+'</div>';
+    return;
+  }
+  list.innerHTML=shown.map(r=>{
+    const badge = r.type==='stool'
+      ? '<div class="badge">'+r.value+'</div>'
+      : '<div class="badge dish">🍽</div>';
+    const title = r.type==='stool' ? ('Bristol type '+r.value) : escapeHtml(r.value);
+    const repeat = r.type==='dish'
+      ? '<button class="repeat" aria-label="Log again now">Repeat</button>' : '';
+    return '<div class="entry" data-id="'+r.id+'">'+badge+
+      '<div class="body"><div class="title">'+title+'</div><div class="time">'+fmt(r.ts)+'</div></div>'+
+      repeat+'<button class="del" aria-label="Delete">×</button></div>';
+  }).join('');
+}
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+/* ---------- build Bristol row ---------- */
+const bwrap=$('#bristol');
+for(let i=1;i<=7;i++){
+  const b=document.createElement('button');
+  b.innerHTML='<span class="num">'+i+'</span>';
+  b.onclick=async()=>{
+    await add({type:'stool',value:i,ts:Date.now()});
+    b.classList.add('picked');setTimeout(()=>b.classList.remove('picked'),260);
+    toast('Logged Bristol type '+i);
+    render();
+  };
+  bwrap.appendChild(b);
+}
+
+/* ---------- dish logging ---------- */
+async function logDish(){
+  const inp=$('#dish'); const v=inp.value.trim();
+  if(!v){inp.focus();return;}
+  await add({type:'dish',value:v,ts:Date.now()});
+  inp.value='';toast('Logged “'+ (v.length>24?v.slice(0,24)+'…':v) +'”');render();
+}
+$('#logDish').onclick=logDish;
+$('#dish').addEventListener('keydown',e=>{if(e.key==='Enter')logDish();});
+
+/* ---------- filter ---------- */
+$('#filter').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  filter=b.dataset.f;
+  [...$('#filter').children].forEach(x=>x.classList.toggle('on',x===b));
+  render();
+});
+
+/* ---------- list actions: delete + repeat ---------- */
+$('#list').addEventListener('click',async e=>{
+  const row=e.target.closest('.entry');if(!row)return;
+  const id=Number(row.dataset.id);
+  if(e.target.classList.contains('del')){
+    await remove(id);render();return;
+  }
+  if(e.target.classList.contains('repeat')){
+    const rows=await all();
+    const src=rows.find(r=>r.id===id);
+    if(src){
+      await add({type:'dish',value:src.value,ts:Date.now()});
+      toast('Logged “'+ (src.value.length>24?src.value.slice(0,24)+'…':src.value) +'”');
+      render();
+    }
+  }
+});
+
+/* ---------- export CSV ---------- */
+$('#exportBtn').onclick=async()=>{
+  const rows=(await all()).sort((a,b)=>a.ts-b.ts);
+  if(!rows.length){toast('Nothing to export',true);return;}
+  const esc=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  const lines=['datetime,type,value'];
+  rows.forEach(r=>lines.push([esc(new Date(r.ts).toISOString()),esc(r.type),esc(r.value)].join(',')));
+  const blob=new Blob([lines.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='gutlog_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();URL.revokeObjectURL(a.href);
+  toast('Exported '+rows.length+' rows');
+};
+
+/* ---------- Bristol info popup ---------- */
+$('#bristolKey').innerHTML = bristolInfo.map(([n,name,desc])=>{
+  return '<li><span class="k-num">'+n+'</span><span class="k-body">'+
+    '<span class="k-name">'+name+'</span><span class="k-desc">'+desc+'</span></span></li>';
+}).join('');
+$('#infoBtn').onclick=()=>$('#infoScrim').classList.add('show');
+$('#infoClose').onclick=()=>$('#infoScrim').classList.remove('show');
+$('#infoScrim').onclick=e=>{if(e.target===$('#infoScrim'))$('#infoScrim').classList.remove('show');};
+
+/* ---------- clear all (with confirm) ---------- */
+$('#clearBtn').onclick=()=>$('#scrim').classList.add('show');
+$('#clearCancel').onclick=()=>$('#scrim').classList.remove('show');
+$('#scrim').onclick=e=>{if(e.target===$('#scrim'))$('#scrim').classList.remove('show');};
+$('#clearConfirm').onclick=async()=>{
+  await clearAll();$('#scrim').classList.remove('show');
+  filter='all';[...$('#filter').children].forEach(x=>x.classList.toggle('on',x.dataset.f==='all'));
+  render();toast('All records cleared');
+};
+
+/* ---------- boot ---------- */
+(async()=>{
+  await open();
+  if(navigator.storage&&navigator.storage.persist){
+    try{await navigator.storage.persist();}catch(e){}
+  }
+  render();
+})();
+</script>
+</body>
+</html>
