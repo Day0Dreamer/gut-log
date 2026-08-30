@@ -139,6 +139,35 @@
   .bristol-key .k-body{flex:1;min-width:0;}
   .bristol-key .k-name{font-size:14px;font-weight:600;color:var(--ink);display:block;}
   .bristol-key .k-desc{font-size:12.5px;color:var(--muted);line-height:1.45;margin-top:2px;display:block;}
+
+  /* FODMAP reference */
+  .modal.fodmap{max-width:620px;padding:20px 16px;}
+  .fod-legend{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 12px;}
+  .fod-legend span{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    padding:7px 6px;border-radius:9px;text-align:center;}
+  .fod-legend .lo{background:rgba(124,196,160,.13);color:var(--accent);
+    border:1px solid rgba(124,196,160,.32);}
+  .fod-legend .hi{background:rgba(217,139,106,.13);color:var(--danger);
+    border:1px solid rgba(217,139,106,.32);}
+  .fod-scroll{max-height:52vh;overflow-y:auto;margin:0 0 14px;padding-right:4px;
+    scrollbar-width:thin;scrollbar-color:var(--line) transparent;}
+  .fod-scroll::-webkit-scrollbar{width:8px;}
+  .fod-scroll::-webkit-scrollbar-track{background:transparent;}
+  .fod-scroll::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+  .fod-scroll::-webkit-scrollbar-thumb:active{background:var(--muted);}
+  .fod-cat{margin-bottom:15px;}
+  .fod-cat:last-child{margin-bottom:0;}
+  .fod-cat h4{margin:0 0 7px;font-size:11px;font-weight:700;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);
+    padding-bottom:5px;}
+  .fod-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;}
+  .fod-cols ul{list-style:none;margin:0;padding:0;}
+  .fod-cols li{font-size:12.5px;line-height:1.45;padding:1.5px 0 1.5px 13px;
+    position:relative;color:var(--ink);}
+  .fod-cols li::before{position:absolute;left:0;top:1.5px;font-weight:700;font-size:12px;}
+  .fod-cols .lo li::before{content:'+';color:var(--accent);}
+  .fod-cols .hi li::before{content:'\2212';color:var(--danger);}
+  .fod-note{font-size:11.5px;color:var(--muted);line-height:1.5;margin:0 0 16px;}
 </style>
 </head>
 <body>
@@ -149,7 +178,10 @@
 
 <!-- DISH LOGGER -->
 <section class="card">
-  <h2>What I ate</h2>
+  <div class="log-head">
+    <h2>What I ate</h2>
+    <button class="info-btn" id="fodBtn" aria-label="Low and high FODMAP food guide">i</button>
+  </div>
   <div class="dish-row">
     <input id="dish" name="dish" type="text" placeholder="Dish or drink…" autocomplete="off"
            enterkeyhint="done" maxlength="120"
@@ -197,6 +229,19 @@
   </div>
 </div>
 
+<div class="scrim" id="fodScrim">
+  <div class="modal info fodmap">
+    <h3>FODMAP quick reference</h3>
+    <p class="lede">Fermentable carbs that commonly trigger IBS symptoms, by food group.</p>
+    <div class="fod-legend"><span class="lo">Low — usually fine</span><span class="hi">High — common triggers</span></div>
+    <div class="fod-scroll" id="fodBody"></div>
+    <p class="fod-note">Portion decides a lot: a small serve of a “high” food is often tolerated,
+      and a large serve of a “low” one can still trigger. Tolerance is individual — use this to
+      pick what to log and test, not as medical advice.</p>
+    <div class="row"><button class="cancel" id="fodClose">Got it</button></div>
+  </div>
+</div>
+
 <div class="scrim" id="scrim">
   <div class="modal">
     <h3>Clear all records?</h3>
@@ -218,6 +263,58 @@ const bristolInfo = [
   ['5','Soft blobs','Soft, distinct pieces with clear-cut edges that pass easily. Borderline — can be normal for some, but often points to slightly fast transit or a need for more fiber.'],
   ['6','Mushy, ragged','Fluffy, mushy pieces with ragged, torn edges and no firm shape. Indicates fast transit — the colon isn\'t reabsorbing enough water. Counts as mild diarrhea and is a common IBS-D pattern.'],
   ['7','Liquid','Entirely watery with no solid pieces. Marks the fastest transit and most severe diarrhea; sustained type 7 risks dehydration and loss of electrolytes.']
+];
+
+/* Low / high FODMAP foods for the info popup, grouped by food category */
+const fodmapGuide = [
+  ['Vegetables',
+   ['Carrot','Cucumber','Zucchini','Red bell pepper','Eggplant','Green beans','Lettuce',
+    'Baby spinach','Tomato','Potato','Bok choy','Kale','Parsnip','Radish','Olives',
+    'Spring onion — green tops'],
+   ['Onion — all kinds','Garlic','Cauliflower','Mushrooms','Asparagus','Sugar snap peas',
+    'Leek bulb','Artichoke','Beetroot','Celery','Savoy cabbage','Sweetcorn']],
+
+  ['Fruit',
+   ['Unripe banana','Blueberry','Strawberry','Raspberry','Grape','Kiwi','Orange','Mandarin',
+    'Pineapple','Cantaloupe','Rhubarb','Passionfruit','Lemon & lime'],
+   ['Apple','Pear','Mango','Watermelon','Cherry','Peach','Nectarine','Plum','Apricot',
+    'Blackberry','Fig','All dried fruit','Very ripe banana','Avocado — large serve']],
+
+  ['Grains & starches',
+   ['White & brown rice','Oats','Quinoa','Buckwheat','Polenta','Millet','Corn tortilla',
+    'Rice noodles','Gluten-free bread','Spelt sourdough'],
+   ['Wheat bread','Rye bread','Barley','Couscous','Wheat pasta','Wheat breakfast cereal',
+    'Muesli with dried fruit','Gnocchi']],
+
+  ['Protein',
+   ['Eggs','Chicken','Beef','Pork','Lamb','Fish','Prawns','Firm tofu','Tempeh',
+    'Canned lentils — rinsed, small serve'],
+   ['Chickpeas','Kidney beans','Baked beans','Dried lentils — large serve','Silken tofu',
+    'Sausages with fillers','Meat marinated with onion or garlic']],
+
+  ['Dairy & alternatives',
+   ['Lactose-free milk','Lactose-free yoghurt','Hard cheese — cheddar, parmesan','Brie',
+    'Camembert','Feta','Butter','Almond milk','Rice milk'],
+   ['Cow & goat milk','Yoghurt','Ice cream','Ricotta','Cottage cheese','Cream','Custard',
+    'Condensed milk','Soy milk from whole beans','Oat milk — large serve']],
+
+  ['Nuts & seeds',
+   ['Walnuts','Peanuts','Macadamia','Pecans','Pine nuts','Pumpkin seeds','Sunflower seeds',
+    'Chia','Sesame','Almonds — up to 10'],
+   ['Cashews','Pistachios','Almonds — large serve','Hazelnuts — large serve']],
+
+  ['Flavour & sweeteners',
+   ['Garlic-infused oil','Chilli','Ginger','Fresh herbs','Salt & pepper','Vinegar','Soy sauce',
+    'Mustard','Maple syrup','Table sugar','Dark chocolate — small serve'],
+   ['Garlic & onion powder','Honey','Agave','High-fructose corn syrup',
+    'Sorbitol, mannitol, xylitol','Sugar-free gum & mints','Stock cubes with onion',
+    'Chutney','Hummus','Tzatziki']],
+
+  ['Drinks',
+   ['Water','Black coffee','Black & green tea','Peppermint tea','Cranberry juice','Gin','Vodka',
+    'Wine — small serve','Beer — small serve'],
+   ['Apple & pear juice','Mango juice','Chamomile tea','Fennel tea','Oolong tea','Strong chai',
+    'Rum','Sweetened soft drinks','Large fruit smoothies']]
 ];
 
 /* ---------- IndexedDB tiny wrapper ---------- */
@@ -355,6 +452,17 @@ $('#bristolKey').innerHTML = bristolInfo.map(([n,name,desc])=>{
 $('#infoBtn').onclick=()=>$('#infoScrim').classList.add('show');
 $('#infoClose').onclick=()=>$('#infoScrim').classList.remove('show');
 $('#infoScrim').onclick=e=>{if(e.target===$('#infoScrim'))$('#infoScrim').classList.remove('show');};
+
+/* ---------- FODMAP info popup ---------- */
+$('#fodBody').innerHTML = fodmapGuide.map(([cat,lo,hi])=>{
+  const col=(items,cls)=>'<ul class="'+cls+'">'+
+    items.map(i=>'<li>'+escapeHtml(i)+'</li>').join('')+'</ul>';
+  return '<div class="fod-cat"><h4>'+escapeHtml(cat)+'</h4>'+
+    '<div class="fod-cols">'+col(lo,'lo')+col(hi,'hi')+'</div></div>';
+}).join('');
+$('#fodBtn').onclick=()=>$('#fodScrim').classList.add('show');
+$('#fodClose').onclick=()=>$('#fodScrim').classList.remove('show');
+$('#fodScrim').onclick=e=>{if(e.target===$('#fodScrim'))$('#fodScrim').classList.remove('show');};
 
 /* ---------- clear all (with confirm) ---------- */
 $('#clearBtn').onclick=()=>$('#scrim').classList.add('show');
