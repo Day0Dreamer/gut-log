@@ -6,6 +6,12 @@
 <meta name="theme-color" content="#14201c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gut Log">
+<meta name="description" content="Log meals and Bristol stool types on your phone to spot what upsets your gut.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icon-180.png">
 <title>Gut Log</title>
 <style>
   :root{
@@ -505,6 +511,9 @@ $('#clearConfirm').onclick=async()=>{
 };
 
 /* ---------- boot ---------- */
+if('serviceWorker' in navigator){
+  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
 (async()=>{
   await open();
   if(navigator.storage&&navigator.storage.persist){
