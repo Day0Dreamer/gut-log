@@ -522,16 +522,29 @@ $('#exportBtn').onclick=async()=>{
 };
 
 /* ---------- Bristol info popup ---------- */
-$('#bristolKey').innerHTML = bristolInfo.map(([n,name,desc])=>{
-  return '<li><span class="k-num">'+n+'</span><span class="k-body">'+
-    '<span class="k-name">'+name+'</span><span class="k-desc">'+desc+'</span></span></li>';
-}).join('');
-$('#infoBtn').onclick=()=>$('#infoScrim').classList.add('show');
+function buildBristolKey(){
+  const el=$('#bristolKey');
+  if(el.firstChild) return;
+  el.innerHTML = bristolInfo.map(([n,name,desc])=>{
+    return '<li><span class="k-num">'+n+'</span><span class="k-body">'+
+      '<span class="k-name">'+name+'</span><span class="k-desc">'+desc+'</span></span></li>';
+  }).join('');
+}
+$('#infoBtn').onclick=()=>{buildBristolKey();$('#infoScrim').classList.add('show');};
 $('#infoClose').onclick=()=>$('#infoScrim').classList.remove('show');
 $('#infoScrim').onclick=e=>{if(e.target===$('#infoScrim'))$('#infoScrim').classList.remove('show');};
 
 /* ---------- FODMAP info popup ---------- */
-$('#fodBody').innerHTML = fodmapGuide.map(([cat,lo,hi])=>{
+/* Built on first open rather than at load. Chrome dismisses the PWA splash
+   screen on the page's first paint, so 360-odd nodes for a modal that starts
+   hidden are pure delay in front of it. */
+let fodHeads=[];
+function buildFodmap(){
+  if(fodHeads.length) return;
+  $('#fodBody').innerHTML = fodmapMarkup();
+  fodHeads=[...document.querySelectorAll('.fod-cat h4')];
+}
+function fodmapMarkup(){ return fodmapGuide.map(([cat,lo,hi])=>{
   const col=(items,cls)=>'<ul class="'+cls+'">'+items.map(i=>{
     const free = cls==='lo' && fodmapFree.has(i);
     /* Search the food, not the portion note: "Almonds", not "Almonds — up to 10". */
@@ -542,11 +555,11 @@ $('#fodBody').innerHTML = fodmapGuide.map(([cat,lo,hi])=>{
   }).join('')+'</ul>';
   return '<div class="fod-cat"><h4>'+escapeHtml(cat)+'</h4>'+
     '<div class="fod-cols">'+col(lo,'lo')+col(hi,'hi')+'</div></div>';
-}).join('');
+}).join(''); }
 /* A pinned header cuts the row sliding under it; the fade softens that edge.
    Pinned means: this category has scrolled past the top of the scroller but
    has not yet been pushed off by the next one. */
-const fodScroll=$('.fod-scroll'), fodHeads=[...document.querySelectorAll('.fod-cat h4')];
+const fodScroll=$('.fod-scroll');
 function markPinned(){
   const top=fodScroll.getBoundingClientRect().top;
   fodHeads.forEach(h=>{
@@ -556,7 +569,7 @@ function markPinned(){
 }
 fodScroll.addEventListener('scroll',markPinned,{passive:true});
 
-$('#fodBtn').onclick=()=>{$('#fodScrim').classList.add('show');markPinned();};
+$('#fodBtn').onclick=()=>{buildFodmap();$('#fodScrim').classList.add('show');markPinned();};
 $('#fodClose').onclick=()=>$('#fodScrim').classList.remove('show');
 $('#fodScrim').onclick=e=>{if(e.target===$('#fodScrim'))$('#fodScrim').classList.remove('show');};
 
