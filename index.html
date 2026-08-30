@@ -165,9 +165,15 @@
   .fod-scroll::-webkit-scrollbar-thumb:active{background:var(--muted);}
   .fod-cat{margin-bottom:14px;}
   .fod-cat:last-child{margin-bottom:0;}
+  /* Every gap under a sticky header must be opaque: a margin here is a
+     transparent window that list text scrolls through. So the spacing is
+     padding, and the rule is drawn inside it. */
   .fod-cat h4{position:sticky;top:0;z-index:1;background:var(--surface);
-    margin:0 0 6px;padding:9px 0 5px;font-size:11px;font-weight:700;letter-spacing:.09em;
-    text-transform:uppercase;color:var(--muted);box-shadow:0 1px 0 var(--line);}
+    margin:0;padding:9px 0 12px;font-size:11px;font-weight:700;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--muted);
+    box-shadow:0 10px 10px -8px rgba(0,0,0,.8);}
+  .fod-cat h4::before{content:'';position:absolute;left:0;right:0;bottom:7px;
+    height:1px;background:var(--line);}
   .fod-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;}
   .fod-cols ul{list-style:none;margin:0;padding:0;}
   .fod-cols li{font-size:12.5px;line-height:1.45;padding:1.5px 0 1.5px 15px;
