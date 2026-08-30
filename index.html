@@ -175,6 +175,13 @@
     letter-spacing:.09em;text-transform:uppercase;color:var(--muted);}
   .fod-cat h4::before{content:'';position:absolute;left:0;right:0;bottom:6px;
     height:1px;background:var(--line);}
+  /* Dissolves the row passing beneath a pinned header. Only while pinned:
+     an unconditional gradient washes the first row of every category that is
+     sitting still. rgba is --surface at zero alpha. */
+  .fod-cat h4::after{content:'';position:absolute;left:0;right:0;top:100%;height:14px;
+    background:linear-gradient(rgb(29,44,38),rgba(29,44,38,0));
+    opacity:0;transition:opacity .12s ease;pointer-events:none;}
+  .fod-cat h4.pinned::after{opacity:1;}
   .fod-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start;}
   .fod-cols ul{list-style:none;margin:0;padding:0;}
   .fod-cols li{font-size:12.5px;line-height:1.45;padding:1.5px 0 1.5px 15px;
@@ -212,6 +219,7 @@
   }
   @media (prefers-reduced-motion:reduce){
     .fod-note summary::after{transition:none;}
+    .fod-cat h4::after{transition:none;}
   }
 </style>
 </head>
@@ -521,7 +529,20 @@ $('#fodBody').innerHTML = fodmapGuide.map(([cat,lo,hi])=>{
   return '<div class="fod-cat"><h4>'+escapeHtml(cat)+'</h4>'+
     '<div class="fod-cols">'+col(lo,'lo')+col(hi,'hi')+'</div></div>';
 }).join('');
-$('#fodBtn').onclick=()=>$('#fodScrim').classList.add('show');
+/* A pinned header cuts the row sliding under it; the fade softens that edge.
+   Pinned means: this category has scrolled past the top of the scroller but
+   has not yet been pushed off by the next one. */
+const fodScroll=$('.fod-scroll'), fodHeads=[...document.querySelectorAll('.fod-cat h4')];
+function markPinned(){
+  const top=fodScroll.getBoundingClientRect().top;
+  fodHeads.forEach(h=>{
+    const r=h.parentElement.getBoundingClientRect();
+    h.classList.toggle('pinned', r.top<top-0.5 && r.bottom>top+h.offsetHeight);
+  });
+}
+fodScroll.addEventListener('scroll',markPinned,{passive:true});
+
+$('#fodBtn').onclick=()=>{$('#fodScrim').classList.add('show');markPinned();};
 $('#fodClose').onclick=()=>$('#fodScrim').classList.remove('show');
 $('#fodScrim').onclick=e=>{if(e.target===$('#fodScrim'))$('#fodScrim').classList.remove('show');};
 
