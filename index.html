@@ -24,6 +24,7 @@
     --accent:#7cc4a0;      /* mint — actions */
     --accent-ink:#0d1613;  /* text on accent */
     --danger:#d98b6a;      /* clay — destructive */
+    --warn:#e3b566;        /* amber — safe only up to a point */
     --radius:16px;
     --tap:56px;
   }
@@ -160,6 +161,7 @@
   .fod-head span{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
   .fod-head .lo{color:var(--accent);}
   .fod-head .hi{color:var(--danger);}
+  .fod-cols .port{color:var(--warn);font-size:11px;font-weight:600;white-space:nowrap;}
   .fod-scroll{flex:1;min-height:0;overflow-y:auto;padding-right:4px;
     overscroll-behavior:contain;
     scrollbar-width:thin;scrollbar-color:var(--line) transparent;}
@@ -198,6 +200,7 @@
     border-radius:4px;}
   .fod-cols li::before{position:absolute;left:0;top:1.5px;font-weight:700;font-size:11.5px;}
   .fod-cols .lo li::before{content:'+';color:var(--accent);}
+  .fod-cols .lo li.cap::before{content:'\00b1';color:var(--warn);}
   .fod-cols .hi li::before{content:'\2212';color:var(--danger);}
   /* ++ \u2014 no FODMAPs at all, so portion does not come into it */
   .fod-cols .lo li.free::after{content:'+';position:absolute;left:4.5px;top:1.5px;
@@ -216,6 +219,9 @@
   .fod-note p{margin:0 2px 10px;font-size:12px;color:var(--muted);line-height:1.55;}
   .fod-note p:last-child{margin-bottom:12px;}
   .fod-note .k{color:var(--accent);font-weight:700;margin-right:3px;}
+  .fod-note .k.kw{color:var(--warn);}
+  .fod-note .k.kc{color:var(--danger);}
+  .fod-note strong{color:var(--ink);font-weight:650;}
 
   /* keyboard focus */
   .info-btn:focus-visible,.modal .row button:focus-visible,
@@ -295,16 +301,26 @@
 <div class="scrim" id="fodScrim">
   <div class="modal info fodmap">
     <h3>FODMAP quick reference</h3>
-    <div class="fod-head"><span class="lo">Low</span><span class="hi">High</span></div>
+    <div class="fod-head"><span class="lo">Keep</span><span class="hi">Cut</span></div>
     <div class="fod-scroll" id="fodBody"></div>
     <details class="fod-note">
-      <summary>Portion sizes and what ++ means</summary>
+      <summary>How to read this, and label traps</summary>
       <p><span class="k">++</span> No FODMAPs at all — water, plain meat, fish, eggs, fats, salt,
         herbs and sugar. Portion doesn’t come into it.</p>
-      <p><span class="k">+</span> Low at a normal serving. A small serve of a “high” food is often
-        fine, and a large serve of a “low” one can still trigger.</p>
-      <p>FODMAPs are fermentable carbs that commonly set off IBS symptoms. Tolerance is
-        individual — use this to pick what to log and test, not as medical advice.</p>
+      <p><span class="k">+</span> Low at a normal serving.</p>
+      <p><span class="k kw">±</span> Low only up to the amount shown. Above it the same food
+        turns high.</p>
+      <p><span class="k kc">−</span> Cut — high-FODMAP, or a motility trigger like coffee.</p>
+      <p><strong>The golden rule.</strong> Keep means keep at a low serving, not unlimited.
+        Several safe foods stack into a high load as portions climb, which is why the Monash
+        app, with tested per-food thresholds, beats any flat list including this one.</p>
+      <p><strong>Label traps.</strong> Onion powder, garlic powder, inulin or chicory root, and
+        high-fructose corn syrup hide in sauces, crisps, stocks, protein bars and “gut health”
+        products. When a packaged food misbehaves it is usually one of those four.</p>
+      <p><strong>Not a starvation diet.</strong> Rice, potato, oats, eggs, plain meat and fish,
+        hard cheese, the safe veg and fruit, garlic-infused oil — that is a full diet. It is
+        also temporary: the strict phase is about four weeks of clean baseline so reintroduction
+        can find your own thresholds. General reference, not medical advice.</p>
     </details>
     <div class="row"><button class="cancel" id="fodClose">Got it</button></div>
   </div>
@@ -333,65 +349,93 @@ const bristolInfo = [
   ['7','Liquid','Entirely watery with no solid pieces. Marks the fastest transit and most severe diarrhea; sustained type 7 risks dehydration and loss of electrolytes.']
 ];
 
-/* Low items that contain no FODMAPs at all — marked ++ because they stay safe
-   at any portion, unlike the rest of the low column which is low per serving. */
+/* Items with no FODMAPs at all — marked ++ because they stay safe at any
+   portion, unlike the rest of the keep column which is low per serving. */
 const fodmapFree = new Set([
   'Eggs','Chicken','Beef','Pork','Lamb','Fish','Prawns',
-  'Butter','Hard cheese — cheddar, parmesan',
-  'Garlic-infused oil','Chilli','Ginger','Fresh herbs','Salt & pepper','Table sugar',
-  'Water'
+  'Butter','Hard cheese — cheddar, parmesan, swiss',
+  'Garlic-infused oil','Chilli','Ginger','Fresh herbs','Salt & pepper',
+  'Table sugar','Glucose','Aspartame & acesulfame-K','Water'
 ]);
 
-/* Low / high FODMAP foods for the info popup, grouped by food category */
+/* Marked ± — low only up to the amount shown, high above it. */
+const fodmapLimit = new Map([
+  ['Sweet potato','≤ ½ cup'],
+  ['Green beans','≤ ½ cup'],
+  ['Broccoli','≤ ½ cup'],
+  ['Butternut squash','≤ ½ cup'],
+  ['Ripe banana','≤ ⅓ medium'],
+  ['Avocado','≤ ⅛'],
+  ['Canned lentils — rinsed','≤ ¼ cup'],
+  ['Canned chickpeas — rinsed','≤ ¼ cup'],
+  ['Oat milk','≤ 100 ml'],
+  ['Almonds','≤ 10'],
+  ['Hazelnuts','≤ 10'],
+  ['Green & black tea','weak, keep steady'],
+  ['Coke Zero','fizz + caffeine'],
+  ['Dry wine','small serve'],
+  ['Beer','small serve']
+]);
+
+/* Keep / cut foods for the info popup, grouped by food category. */
 const fodmapGuide = [
   ['Vegetables',
-   ['Carrot','Cucumber','Zucchini','Red bell pepper','Eggplant','Green beans','Lettuce',
-    'Baby spinach','Tomato','Potato','Bok choy','Kale','Parsnip','Radish','Olives',
-    'Spring onion — green tops'],
-   ['Onion — all kinds','Garlic','Cauliflower','Mushrooms','Asparagus','Sugar snap peas',
-    'Leek bulb','Artichoke','Beetroot','Celery','Savoy cabbage','Sweetcorn']],
+   ['Carrot','Cucumber','Red bell pepper','Zucchini','Eggplant','Lettuce','Tomato',
+    'Baby spinach','Potato','Bok choy','Kale','Parsnip','Radish','Olives',
+    'Spring onion — green tops','Sweet potato','Green beans','Broccoli',
+    'Butternut squash'],
+   ['Onion — including powder','Garlic — including powder','Leek bulb','Shallots',
+    'Cauliflower','Mushrooms','Asparagus','Sugar snap peas','Artichoke','Beetroot',
+    'Celery','Savoy cabbage','Sweetcorn']],
 
   ['Fruit',
-   ['Unripe banana','Blueberry','Strawberry','Raspberry','Grape','Kiwi','Orange','Mandarin',
-    'Pineapple','Cantaloupe','Rhubarb','Passionfruit','Lemon & lime'],
+   ['Orange','Mandarin','Grape','Strawberry','Blueberry','Raspberry','Kiwi',
+    'Pineapple','Cantaloupe','Rhubarb','Passionfruit','Lemon & lime','Unripe banana',
+    'Ripe banana','Avocado'],
    ['Apple','Pear','Mango','Watermelon','Cherry','Peach','Nectarine','Plum','Apricot',
-    'Blackberry','Fig','All dried fruit','Very ripe banana','Avocado — large serve']],
+    'Blackberry','Fig','All dried fruit','Fruit juice']],
 
   ['Grains & starches',
    ['White & brown rice','Oats','Quinoa','Buckwheat','Polenta','Millet','Corn tortilla',
-    'Rice noodles','Gluten-free bread','Spelt sourdough'],
+    'Rice noodles','Gluten-free bread — check for inulin',
+    'Spelt sourdough — genuine long-ferment'],
    ['Wheat bread','Rye bread','Barley','Couscous','Wheat pasta','Wheat breakfast cereal',
-    'Muesli with dried fruit','Gnocchi']],
+    'Wheat crackers','Muesli with dried fruit','Gnocchi',
+    'Loaves with inulin or chicory root']],
 
   ['Protein',
    ['Eggs','Chicken','Beef','Pork','Lamb','Fish','Prawns','Firm tofu','Tempeh',
-    'Canned lentils — rinsed, small serve'],
-   ['Chickpeas','Kidney beans','Baked beans','Dried lentils — large serve','Silken tofu',
-    'Sausages with fillers','Meat marinated with onion or garlic']],
+    'Canned lentils — rinsed','Canned chickpeas — rinsed'],
+   ['Chickpeas','Kidney beans','Black beans','Baked beans','Soybeans','Dried lentils',
+    'Silken tofu','Sausages with fillers','Meat marinated with onion or garlic']],
 
   ['Dairy & alternatives',
-   ['Lactose-free milk','Lactose-free yoghurt','Hard cheese — cheddar, parmesan','Brie',
-    'Camembert','Feta','Butter','Almond milk','Rice milk'],
-   ['Cow & goat milk','Yoghurt','Ice cream','Ricotta','Cottage cheese','Cream','Custard',
-    'Condensed milk','Soy milk from whole beans','Oat milk — large serve']],
+   ['Lactose-free milk','Lactose-free yoghurt','Hard cheese — cheddar, parmesan, swiss',
+    'Brie','Camembert','Feta','Butter','Almond milk','Rice milk',
+    'Soy milk — from soy protein','Oat milk'],
+   ['Cow & goat milk','Cream','Evaporated milk','Condensed milk','Yoghurt','Ice cream',
+    'Ricotta','Cottage cheese','Cream cheese','Mascarpone','Custard',
+    'Soy milk — from whole beans']],
 
   ['Nuts & seeds',
-   ['Walnuts','Peanuts','Macadamia','Pecans','Pine nuts','Pumpkin seeds','Sunflower seeds',
-    'Chia','Sesame','Almonds — up to 10'],
-   ['Cashews','Pistachios','Almonds — large serve','Hazelnuts — large serve']],
+   ['Walnuts','Peanuts','Macadamia','Pecans','Pine nuts','Pumpkin seeds',
+    'Sunflower seeds','Chia','Sesame','Almonds','Hazelnuts'],
+   ['Cashews','Pistachios']],
 
   ['Flavour & sweeteners',
-   ['Garlic-infused oil','Chilli','Ginger','Fresh herbs','Salt & pepper','Vinegar','Soy sauce',
-    'Mustard','Maple syrup','Table sugar','Dark chocolate — small serve'],
+   ['Garlic-infused oil','Chilli','Ginger','Fresh herbs','Salt & pepper','Vinegar',
+    'Soy sauce','Mustard','Maple syrup','Table sugar','Glucose',
+    'Aspartame & acesulfame-K','Dark chocolate — small serve'],
    ['Garlic & onion powder','Honey','Agave','High-fructose corn syrup',
-    'Sorbitol, mannitol, xylitol','Sugar-free gum & mints','Stock cubes with onion',
-    'Chutney','Hummus','Tzatziki']],
+    'Inulin & chicory root','Sorbitol, mannitol, xylitol','Maltitol',
+    'Sugar-free gum & mints','Stock cubes with onion','Chutney','Hummus','Tzatziki']],
 
   ['Drinks',
-   ['Water','Black coffee','Black & green tea','Peppermint tea','Cranberry juice','Gin','Vodka',
-    'Wine — small serve','Beer — small serve'],
-   ['Apple & pear juice','Mango juice','Chamomile tea','Fennel tea','Oolong tea','Strong chai',
-    'Rum','Sweetened soft drinks','Large fruit smoothies']]
+   ['Water','Peppermint tea','Cranberry juice','Green & black tea','Coke Zero',
+    'Gin','Vodka','Dry wine','Beer'],
+   ['Coffee — motility trigger','Apple & pear juice','Mango juice','Chamomile tea',
+    'Fennel tea','Oolong tea','Strong chai','Rum','Sweet & fortified wines',
+    'Sweetened soft drinks','Large fruit smoothies']]
 ];
 
 /* ---------- IndexedDB tiny wrapper ---------- */
@@ -547,11 +591,13 @@ function buildFodmap(){
 function fodmapMarkup(){ return fodmapGuide.map(([cat,lo,hi])=>{
   const col=(items,cls)=>'<ul class="'+cls+'">'+items.map(i=>{
     const free = cls==='lo' && fodmapFree.has(i);
-    /* Search the food, not the portion note: "Almonds", not "Almonds — up to 10". */
+    const cap  = cls==='lo' ? fodmapLimit.get(i) : null;
+    /* Search the food, not the qualifier: "Onion", not "Onion — including powder". */
     const href='https://www.google.com/search?tbm=isch&amp;q='+
       encodeURIComponent(i.split(' \u2014 ')[0]);
-    return '<li'+(free?' class="free"':'')+'><a href="'+href+
-      '" target="_blank" rel="noopener noreferrer">'+escapeHtml(i)+'</a></li>';
+    return '<li'+(free?' class="free"':cap?' class="cap"':'')+'><a href="'+href+
+      '" target="_blank" rel="noopener noreferrer">'+escapeHtml(i)+'</a>'+
+      (cap?' <span class="port">'+escapeHtml(cap)+'</span>':'')+'</li>';
   }).join('')+'</ul>';
   return '<div class="fod-cat"><h4>'+escapeHtml(cat)+'</h4>'+
     '<div class="fod-cols">'+col(lo,'lo')+col(hi,'hi')+'</div></div>';
