@@ -32,7 +32,7 @@
     font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,system-ui,sans-serif;
     font-size:17px;line-height:1.4;-webkit-font-smoothing:antialiased;}
   body{padding:max(16px,env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
-    max-width:560px;margin:0 auto;min-height:100vh;}
+    max-width:560px;margin:0 auto;min-height:100vh;min-height:100dvh;}
 
   header{display:flex;align-items:baseline;justify-content:space-between;
     margin:4px 2px 20px;}
@@ -186,6 +186,12 @@
   .fod-cols ul{list-style:none;margin:0;padding:0;}
   .fod-cols li{font-size:12.5px;line-height:1.45;padding:1.5px 0 1.5px 15px;
     position:relative;color:var(--ink);overflow-wrap:break-word;}
+  /* Every item links to an image search. Deliberately undecorated: the list
+     has to read as a reference, not as a page of links. */
+  .fod-cols a{color:inherit;text-decoration:none;}
+  .fod-cols a:active{opacity:.5;}
+  .fod-cols a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;
+    border-radius:4px;}
   .fod-cols li::before{position:absolute;left:0;top:1.5px;font-weight:700;font-size:11.5px;}
   .fod-cols .lo li::before{content:'+';color:var(--accent);}
   .fod-cols .hi li::before{content:'\2212';color:var(--danger);}
@@ -524,7 +530,11 @@ $('#infoScrim').onclick=e=>{if(e.target===$('#infoScrim'))$('#infoScrim').classL
 $('#fodBody').innerHTML = fodmapGuide.map(([cat,lo,hi])=>{
   const col=(items,cls)=>'<ul class="'+cls+'">'+items.map(i=>{
     const free = cls==='lo' && fodmapFree.has(i);
-    return '<li'+(free?' class="free"':'')+'>'+escapeHtml(i)+'</li>';
+    /* Search the food, not the portion note: "Almonds", not "Almonds — up to 10". */
+    const href='https://www.google.com/search?tbm=isch&amp;q='+
+      encodeURIComponent(i.split(' \u2014 ')[0]);
+    return '<li'+(free?' class="free"':'')+'><a href="'+href+
+      '" target="_blank" rel="noopener noreferrer">'+escapeHtml(i)+'</a></li>';
   }).join('')+'</ul>';
   return '<div class="fod-cat"><h4>'+escapeHtml(cat)+'</h4>'+
     '<div class="fod-cols">'+col(lo,'lo')+col(hi,'hi')+'</div></div>';
